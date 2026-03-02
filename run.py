@@ -13,21 +13,11 @@ from nanoeval.utils import (
     parse_task_pass_k,
     prepare_eval_input,
 )
-from nanoeval.utils.args import (
-    DEFAULT_FINAL_EVAL_OUTPUT,
-    DEFAULT_SCORE_OUTPUT,
-    DEFAULT_STEP01_OUTPUT,
-    DEFAULT_STEP02_OUTPUT,
-)
 
-
-def _resolve_output_path(output_path: Path, default_path: Path, work_dir: Path | None) -> Path:
+def _resolve_output_path(output_path: Path, work_dir: Path | None) -> Path:
     if work_dir is None:
         return output_path
-    if output_path == default_path:
-        return work_dir / default_path
     return output_path
-
 
 def main(argv: Sequence[str] | None = None) -> int:
     configure_logger(prefix=" nanoeval")
@@ -37,14 +27,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if work_dir is not None:
         work_dir.mkdir(parents=True, exist_ok=True)
-    step01_output = _resolve_output_path(args.output, DEFAULT_STEP01_OUTPUT, work_dir)
-    step02_output = _resolve_output_path(args.inference_output, DEFAULT_STEP02_OUTPUT, work_dir)
-    score_output = _resolve_output_path(args.score_output, DEFAULT_SCORE_OUTPUT, work_dir)
-    final_eval_output = _resolve_output_path(
-        args.final_eval_output,
-        DEFAULT_FINAL_EVAL_OUTPUT,
-        work_dir,
-    )
+    step01_output = _resolve_output_path(args.output, work_dir)
+    step02_output = _resolve_output_path(args.inference_output, work_dir)
+    score_output = _resolve_output_path(args.score_output, work_dir)
+    final_eval_output = _resolve_output_path(args.final_eval_output, work_dir)
 
     if args.stage in {"step01", "all"}:
         chat_template_model_path = args.chat_template_model_path or args.model_path

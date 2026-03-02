@@ -121,7 +121,7 @@ def prepare_eval_input(
 
         def _to_chat_prompt(user_prompt: str) -> str:
             messages: List[Dict[str, str]] = []
-            if system_prompt:
+            if system_prompt and len(system_prompt) > 0:
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": user_prompt})
             return tokenizer.apply_chat_template(

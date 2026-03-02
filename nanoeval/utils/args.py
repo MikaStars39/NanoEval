@@ -6,12 +6,6 @@ from typing import Dict, List, Sequence, Tuple
 
 from .task import discover_task_names, resolve_task_file
 
-DEFAULT_STEP01_OUTPUT = Path("artifacts/input/prepared_input.jsonl")
-DEFAULT_STEP02_OUTPUT = Path("artifacts/output/inference_output.jsonl")
-DEFAULT_SCORE_OUTPUT = Path("artifacts/score/scored_output.jsonl")
-DEFAULT_FINAL_EVAL_OUTPUT = Path("artifacts/score/final_metrics.jsonl")
-
-
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="NanoEval pipeline: step01 prepare inputs, step02 inference."
@@ -53,7 +47,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         type=Path,
-        default=DEFAULT_STEP01_OUTPUT,
+        required=True,
         help="Output path for step01 prepared input jsonl.",
     )
     parser.add_argument(
@@ -65,19 +59,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--inference-output",
         type=Path,
-        default=DEFAULT_STEP02_OUTPUT,
+        required=True,
         help="Output jsonl for step02 inference results.",
     )
     parser.add_argument(
         "--score-output",
         type=Path,
-        default=DEFAULT_SCORE_OUTPUT,
+        required=True,
         help="Output jsonl for per-instance judged results in step03.",
     )
     parser.add_argument(
         "--final-eval-output",
         type=Path,
-        default=DEFAULT_FINAL_EVAL_OUTPUT,
+        required=True,
         help="Output jsonl for aggregated metrics in step03.",
     )
     parser.add_argument(
