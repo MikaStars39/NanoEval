@@ -52,14 +52,25 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.stage in {"step02", "all"}:
         inference_input = args.input or step01_output
+        sampling_params = {
+            "temperature": args.temperature,
+            "max_tokens": args.max_tokens,
+        }
+        optional_sampling_fields = (
+            ("top_p", args.top_p),
+            ("top_k", args.top_k),
+            ("min_p", args.min_p),
+            ("presence_penalty", args.presence_penalty),
+            ("repetition_penalty", args.repetition_penalty),
+        )
+        for field_name, field_value in optional_sampling_fields:
+            if field_value is not None:
+                sampling_params[field_name] = field_value
         step02_summary = run_inference(
             backend=args.backend,
             input_file=inference_input,
             output_file=step02_output,
-            sampling_params={
-                "temperature": args.temperature,
-                "max_tokens": args.max_tokens,
-            },
+            sampling_params=sampling_params,
             model_path=args.model_path,
             api_key=args.api_key,
             base_url=args.base_url,

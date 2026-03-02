@@ -147,6 +147,36 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=1024,
         help="Sampling max tokens for inference.",
     )
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=None,
+        help="Optional nucleus sampling top-p for inference.",
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="Optional top-k sampling value for inference.",
+    )
+    parser.add_argument(
+        "--min-p",
+        type=float,
+        default=None,
+        help="Optional minimum probability threshold for sampling.",
+    )
+    parser.add_argument(
+        "--presence-penalty",
+        type=float,
+        default=None,
+        help="Optional presence penalty for token generation.",
+    )
+    parser.add_argument(
+        "--repetition-penalty",
+        type=float,
+        default=None,
+        help="Optional repetition penalty for token generation.",
+    )
     return parser
 
 
