@@ -1,5 +1,3 @@
-
-import json
 from .instructions_registry import INSTRUCTION_DICT
 
 def if_judge(
@@ -33,30 +31,3 @@ def if_judge(
         'instruction_pass_cnt': instruction_pass_cnt,
         'pass': prompt_level_pass_flag
     }
-
-
-def calculate_scores(results):
-    total_prompts = len(results)
-    prompt_level_passed = sum(1 for r in results if r['pass'])
-    
-    total_instructions = sum(r['instruction_count'] for r in results)
-    instruction_level_passed = sum(r['instruction_pass_cnt'] for r in results)
-    
-    prompt_level_score = prompt_level_passed / total_prompts if total_prompts > 0 else 0
-    instruct_level_score = instruction_level_passed / total_instructions if total_instructions > 0 else 0
-    
-    return {
-        'prompt_level_score': prompt_level_score,
-        'instruct_level_score': instruct_level_score,
-        'prompt_level_passed': prompt_level_passed,
-        'total_prompts': total_prompts,
-        'instruction_level_passed': instruction_level_passed,
-        'total_instructions': total_instructions
-    }
-
-if __name__ == '__main__':
-    pass
-    # with open('./ifeval_results.json', 'w', encoding='utf-8') as f:
-    #     json.dump(final_results, f, indent=4, ensure_ascii=False)
-    
-    # print("详细结果已保存到 ifeval_results.json")

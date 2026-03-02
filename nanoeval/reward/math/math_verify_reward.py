@@ -107,15 +107,3 @@ def math_judge(
             "pred": pred_ans,
             "pass": True if score == 1.0 else False
         }
-
-if __name__ == "__main__":
-    # Parse the gold and answer
-    # If you know that gold will only contain latex or expr (no latex env), use
-    # parse(gold, extraction_config=[LatexExtractionConfig()]) or parse(gold, extraction_config=[ExprExtractionConfig()])
-
-    gold = "x^3"
-    answer = "\\boxed{x*x} <|end_of_thought|> asdasdasda \\boxed{{x*x*x}}"
-
-    print(
-        math_judge(answer, gold)
-    )

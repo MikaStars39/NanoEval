@@ -21,34 +21,33 @@ from nanoeval.utils.args import (
 )
 
 
+def _resolve_output_path(output_path: Path, default_path: Path, work_dir: Path | None) -> Path:
+    if work_dir is None:
+        return output_path
+    if output_path == default_path:
+        return work_dir / default_path
+    return output_path
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     configure_logger(prefix=" nanoeval")
     args = parse_cli_args(argv)
     final_summary: dict[str, object] = {"stage": args.stage}
-    step01_output: Path = args.output
-    step02_output: Path = args.inference_output
-    score_output: Path = args.score_output
-    final_eval_output: Path = args.final_eval_output
+    work_dir: Path | None = args.work_dir
 
-    if args.work_dir is not None:
-        work_dir = args.work_dir
+    if work_dir is not None:
         work_dir.mkdir(parents=True, exist_ok=True)
-        if args.output == DEFAULT_STEP01_OUTPUT:
-            step01_output = work_dir / DEFAULT_STEP01_OUTPUT
-        if args.inference_output == DEFAULT_STEP02_OUTPUT:
-            step02_output = work_dir / DEFAULT_STEP02_OUTPUT
-        if args.score_output == DEFAULT_SCORE_OUTPUT:
-            score_output = work_dir / DEFAULT_SCORE_OUTPUT
-        if args.final_eval_output == DEFAULT_FINAL_EVAL_OUTPUT:
-            final_eval_output = work_dir / DEFAULT_FINAL_EVAL_OUTPUT
+    step01_output = _resolve_output_path(args.output, DEFAULT_STEP01_OUTPUT, work_dir)
+    step02_output = _resolve_output_path(args.inference_output, DEFAULT_STEP02_OUTPUT, work_dir)
+    score_output = _resolve_output_path(args.score_output, DEFAULT_SCORE_OUTPUT, work_dir)
+    final_eval_output = _resolve_output_path(
+        args.final_eval_output,
+        DEFAULT_FINAL_EVAL_OUTPUT,
+        work_dir,
+    )
 
     if args.stage in {"step01", "all"}:
         chat_template_model_path = args.chat_template_model_path or args.model_path
-        if chat_template_model_path is None:
-            raise ValueError(
-                "chat template model path is required for step01. "
-                "Please provide --chat-template-model-path or --model-path."
-            )
         task_names, pass_k_by_task = parse_task_pass_k(
             tasks_arg=args.tasks,
             task_dir=args.task_dir,

@@ -32,23 +32,25 @@ def instance_judge(
     return instance
 
 
-def _calculate_matrics(
-    updated_items: List[Dict]
-) -> Dict[str, Dict[str, float]]:
-    # Calculate final metrics
-    raw_data = {}
-    for item in updated_items:
+def _build_task_question_scores(items: List[Dict]) -> Dict[str, Dict[str, List[float]]]:
+    grouped_scores: Dict[str, Dict[str, List[float]]] = {}
+    for item in items:
         ds_name = item.get("source", "unknown")
         q_id = item.get("question_id", "unknown")
         score = 1.0 if item.get("pass", False) else 0.0
-        raw_data.setdefault(ds_name, {}).setdefault(q_id, []).append(score)
+        grouped_scores.setdefault(ds_name, {}).setdefault(q_id, []).append(score)
+    return grouped_scores
 
+
+def _calculate_metrics(
+    grouped_scores: Dict[str, Dict[str, List[float]]]
+) -> Dict[str, Dict[str, float]]:
     final_results = {}
-    for ds_name, q_map in raw_data.items():
+    for ds_name, q_map in grouped_scores.items():
         all_scores = []
         pass_at_k_scores = []
 
-        for q_id, scores in q_map.items():
+        for scores in q_map.values():
             all_scores.extend(scores)
             pass_at_k_scores.append(1.0 if any(s >= 1.0 for s in scores) else 0.0)
 
@@ -60,8 +62,8 @@ def _calculate_matrics(
     # Overall metrics across all datasets
     overall_all_scores = []
     overall_pass_at_k_scores = []
-    for ds_name, q_map in raw_data.items():
-        for q_id, scores in q_map.items():
+    for q_map in grouped_scores.values():
+        for scores in q_map.values():
             overall_all_scores.extend(scores)
             overall_pass_at_k_scores.append(1.0 if any(s >= 1.0 for s in scores) else 0.0)
 
@@ -71,6 +73,16 @@ def _calculate_matrics(
     }
 
     return final_results
+
+
+def _build_pass_at_k_flags(
+    grouped_scores: Dict[str, Dict[str, List[float]]]
+) -> Dict[tuple[str, str], bool]:
+    flags: Dict[tuple[str, str], bool] = {}
+    for ds_name, q_map in grouped_scores.items():
+        for question_id, scores in q_map.items():
+            flags[(ds_name, question_id)] = any(score >= 1.0 for score in scores)
+    return flags
 
 def eval_results(
     eval_output_file: Path,
@@ -99,14 +111,11 @@ def eval_results(
     else:
         items = [instance_judge(item) for item in items]
     logging.info("Judging complete; computing metrics...")
-    passing_keys = {
-        (item.get("source", "unknown"), item.get("question_id", "unknown"))
-        for item in items
-        if item.get("pass", False)
-    }
+    grouped_scores = _build_task_question_scores(items)
+    pass_at_k_flags = _build_pass_at_k_flags(grouped_scores)
     for item in items:
         key = (item.get("source", "unknown"), item.get("question_id", "unknown"))
-        item["pass_at_k"] = key in passing_keys
+        item["pass_at_k"] = pass_at_k_flags.get(key, False)
 
     # ------------------ save the results to a jsonl file ------------------
     score_output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -116,7 +125,7 @@ def eval_results(
     logging.info(f"Saved score results to {score_output_file}")
 
     # ------------------ calculate the metrics and return ------------------ 
-    metrics = _calculate_matrics(items)
+    metrics = _calculate_metrics(grouped_scores)
     final_eval_output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(final_eval_output_file, "w", encoding="utf-8") as f:
         for ds_name, ds_metrics in metrics.items():
