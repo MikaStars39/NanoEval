@@ -100,6 +100,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Local model path for offline backend.",
     )
     parser.add_argument(
+        "--tp-size",
+        type=int,
+        default=1,
+        help="Tensor parallel size for offline backend.",
+    )
+    parser.add_argument(
+        "--dp-size",
+        type=int,
+        default=1,
+        help="Data parallel size for offline backend.",
+    )
+    parser.add_argument(
         "--chat-template-model-path",
         type=str,
         default=None,
@@ -200,6 +212,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Optional repetition penalty for token generation.",
+    )
+    parser.add_argument(
+        "--enable-thinking",
+        action="store_true",
+        help="Enable chat template thinking for online-style backends when supported.",
     )
     return parser
 

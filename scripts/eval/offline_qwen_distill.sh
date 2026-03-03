@@ -4,9 +4,8 @@ export RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
 export NLTK_DATA="/mnt/llm-train/users/explore-train/qingyu/.cache"
 
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-# Minimal online evaluation script.
 REPO_ROOT=/mnt/llm-train/users/explore-train/qingyu/NanoEval
-WORKDIR=/mnt/llm-train/users/explore-train/qingyu/NanoEval/outputs/qwen35_thinking_${TIMESTAMP}
+WORKDIR=/mnt/llm-train/users/explore-train/qingyu/NanoEval/outputs/qwen_4b_offline_${TIMESTAMP}
 LOG_FILE="${WORKDIR}/run.log"
 mkdir -p "${WORKDIR}"
 
@@ -18,7 +17,7 @@ FINAL_EVAL_OUTPUT="${WORKDIR}/step03_final_eval.jsonl"
 TASK_ARGS=(
   --stage all
   --task-dir ${REPO_ROOT}/outputs/nano_eval
-  --tasks "ifeval@1"
+  --tasks "aime2024@32"
   --output ${PREPARED_INPUT}
   --inference-output ${INFERENCE_OUTPUT}
   --score-output ${SCORE_OUTPUT}
@@ -27,21 +26,23 @@ TASK_ARGS=(
 
 ONLINE_ARGS=(
   # Replace these three values with your real endpoint config.
-  --api-key "YOUR_API_KEY"
-  --base-url "http://6.30.4.20:30339/v1"
-  --model "qwen35-35b-a3b"
+  # --api-key "YOUR_API_KEY"
+  # --base-url "http://6.30.4.20:31859/v1"
 )
 
 ROLLOUT_ARGS=(
-  --backend online
+  --model-path /mnt/llm-train/users/explore-train/qingyu/.cache/DeepSeek-R1-Distill-Qwen-1.5B
+  --backend offline
+  --tp-size 1
+  --dp-size 8
   --temperature 0.6
   --top-p 0.95
-  --top-k 20
-  --min-p 0.0
-  --presence-penalty 0.3
-  --repetition-penalty 1.2
+  # --top-k 20
+  # --min-p 0.0
+  # --presence-penalty 0.0
+  # --repetition-penalty 1.0
   --enable-thinking
-  --max-tokens 65536
+  --max-tokens 32768
   --concurrency 1024
   # Optional explicit split for online_ray:
   # --ray-num-actors 8

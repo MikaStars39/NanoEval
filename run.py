@@ -66,12 +66,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         for field_name, field_value in optional_sampling_fields:
             if field_value is not None:
                 sampling_params[field_name] = field_value
+        if args.enable_thinking:
+            if args.backend in {"online", "online_ray"}:
+                sampling_params["chat_template_kwargs"] = {"enable_thinking": True}
+            else:
+                logging.info(
+                    "--enable-thinking is ignored for backend=%s. "
+                    "chat_template_kwargs is only applied to online-compatible backends.",
+                    args.backend,
+                )
         step02_summary = run_inference(
             backend=args.backend,
             input_file=inference_input,
             output_file=step02_output,
             sampling_params=sampling_params,
             model_path=args.model_path,
+            tp_size=args.tp_size,
+            dp_size=args.dp_size,
             api_key=args.api_key,
             base_url=args.base_url,
             model=args.model,

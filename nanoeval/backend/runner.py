@@ -60,6 +60,8 @@ def run_inference(
     output_file: Path,
     sampling_params: Optional[Dict[str, Any]] = None,
     model_path: Optional[str] = None,
+    tp_size: int = 1,
+    dp_size: int = 1,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     model: Optional[str] = None,
@@ -86,7 +88,11 @@ def run_inference(
             offline_params["max_new_tokens"] = offline_params.pop("max_tokens")
 
         async def _run_offline() -> None:
-            async with BatchInferenceEngine(model_path=model_path) as engine:
+            async with BatchInferenceEngine(
+                model_path=model_path,
+                tp_size=max(1, int(tp_size)),
+                dp_size=max(1, int(dp_size)),
+            ) as engine:
                 await engine.run(
                     input_file=str(input_file),
                     output_file=str(output_file),
