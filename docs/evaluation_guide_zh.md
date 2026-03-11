@@ -70,13 +70,16 @@ NanoEval/
 
 NanoEval 采用职责分离的三阶段设计：
 
-| 阶段 | 功能 | 关键操作 |
-|------|------|----------|
-| **Step01** | 输入准备 | 加载任务、应用对话模板、展开 pass@k |
-| **Step02** | 推理生成 | 使用指定后端生成回复 |
+
+| 阶段         | 功能   | 关键操作                     |
+| ---------- | ---- | ------------------------ |
+| **Step01** | 输入准备 | 加载任务、应用对话模板、展开 pass@k    |
+| **Step02** | 推理生成 | 使用指定后端生成回复               |
 | **Step03** | 评分计算 | 判断答案、计算指标 (avg_k、pass@k) |
 
+
 每个阶段都会生成中间 JSONL 文件，带来以下优势：
+
 - **可恢复性**：可从任意阶段重新开始
 - **可调试性**：可随时检查中间结果
 - **灵活性**：同一输入可用不同后端测试
@@ -87,18 +90,19 @@ NanoEval 采用职责分离的三阶段设计：
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ 生产者   │────▶│  队列    │────▶│  工作器  │
-│ (读取)   │     │ (缓冲)   │     │(生成回复)│
+│ 生产者    │────▶│  队列     │──▶  │  工作器.  │
+│ (读取)    │     │ (缓冲)    │    │ (生成回复) │
 └──────────┘     └──────────┘     └────┬─────┘
                                         │
                                         ▼
                                  ┌──────────┐
-                                 │  写入器  │
-                                 │ (保存)   │
+                                 │  写入器   │
+                                 │  (保存)   │
                                  └──────────┘
 ```
 
 核心优势：
+
 - **最大化 GPU 利用率**：工作器无需等待 I/O
 - **内存高效**：流式处理大型数据集
 - **实时监控**：实时显示吞吐率指标
@@ -121,11 +125,13 @@ sampling_params = {
 
 ### 4. 模块化后端系统
 
-| 后端 | 适用场景 | 并发模型 |
-|------|----------|----------|
-| `offline` | 本地 GPU 推理 | `max_inflight` 异步工作器 |
-| `online` | 远程 API 调用 | `concurrency` 信号量限制 |
-| `online_ray` | 分布式 API 调用 | Ray  actors × 工作器并发 |
+
+| 后端           | 适用场景       | 并发模型                 |
+| ------------ | ---------- | -------------------- |
+| `offline`    | 本地 GPU 推理  | `max_inflight` 异步工作器 |
+| `online`     | 远程 API 调用  | `concurrency` 信号量限制  |
+| `online_ray` | 分布式 API 调用 | Ray actors × 工作器并发   |
+
 
 ---
 
@@ -193,6 +199,7 @@ python run.py \
 ### 阶段 1：输入准备
 
 该阶段负责：
+
 1. 从 `--task-dir` 发现任务文件
 2. 应用对话模板（如指定了 `--chat-template-model-path`）
 3. 为 pass@k 评测展开每道题目
@@ -210,6 +217,7 @@ python run.py \
 ```
 
 **任务指定语法：**
+
 - `taskname` — 使用默认 pass-k
 - `taskname@k` — 使用 k 次采样
 - `all` — 自动发现目录下所有任务
@@ -256,6 +264,7 @@ python run.py \
 用于本地模型推理，基于 SGLang 引擎。
 
 **关键参数：**
+
 ```bash
 --backend offline
 --model-path /path/to/model          # 本地模型路径
@@ -265,6 +274,7 @@ python run.py \
 ```
 
 **完整示例：**
+
 ```bash
 ROLLOUT_ARGS=(
   --backend offline
@@ -280,6 +290,7 @@ ROLLOUT_ARGS=(
 ```
 
 **性能建议：**
+
 - `--dp-size` 设置为可用 GPU 数量
 - `--concurrency` 设置为 GPU 数量的 64-128 倍
 - 仅当模型无法放入单张 GPU 时使用 `--tp-size > 1`
@@ -289,6 +300,7 @@ ROLLOUT_ARGS=(
 用于远程 API 推理（兼容 OpenAI 接口）。
 
 **关键参数：**
+
 ```bash
 --backend online
 --api-key "YOUR_API_KEY"
@@ -299,6 +311,7 @@ ROLLOUT_ARGS=(
 ```
 
 **完整示例：**
+
 ```bash
 ONLINE_ARGS=(
   --api-key "sk-..."
@@ -322,6 +335,7 @@ ROLLOUT_ARGS=(
 用于高吞吐分布式 API 推理，基于 Ray 框架。
 
 **关键参数：**
+
 ```bash
 --backend online_ray
 --api-key "YOUR_API_KEY"
@@ -334,11 +348,13 @@ ROLLOUT_ARGS=(
 ```
 
 **并发计算公式：**
+
 ```
 总并发数 = ray-num-actors × ray-worker-concurrency
 ```
 
 **完整示例：**
+
 ```bash
 ROLLOUT_ARGS=(
   --backend online_ray
@@ -351,6 +367,7 @@ ROLLOUT_ARGS=(
 ```
 
 **适用场景：**
+
 - 高延迟 API，单进程异步不够
 - 需要处理数千并发请求
 - 需要更好的容错能力（actor 隔离）
@@ -361,12 +378,14 @@ ROLLOUT_ARGS=(
 
 ### 通用调优建议
 
-| 资源 | 推荐配置 |
-|------|----------|
-| **并发数** | 从 64×GPU 数开始，增加到 GPU 饱和 |
-| **批次大小** | 越大越好（受限于 GPU 内存） |
-| **max_tokens** | 根据任务需求设置，越高 = 越慢 |
-| **评分进程数** | 匹配 CPU 核心数（通常 16-32） |
+
+| 资源             | 推荐配置                    |
+| -------------- | ----------------------- |
+| **并发数**        | 从 64×GPU 数开始，增加到 GPU 饱和 |
+| **批次大小**       | 越大越好（受限于 GPU 内存）        |
+| **max_tokens** | 根据任务需求设置，越高 = 越慢        |
+| **评分进程数**      | 匹配 CPU 核心数（通常 16-32）    |
+
 
 ### 离线后端调优
 
@@ -433,28 +452,32 @@ enable_radix_cache=true
 
 ## 支持的任务类型
 
-| 任务 | 类型 | 评测指标 | 说明 |
-|------|------|----------|------|
-| **aime2024/2025** | 数学推理 | pass@k | AIME 竞赛题目 |
-| **amc2023** | 数学推理 | pass@k | AMC 竞赛题目 |
-| **math500** | 数学推理 | pass@k | MATH 数据集 (500题) |
-| **minerva** | 数学推理 | pass@k | Minerva 数学题目 |
-| **hmmt2025** | 数学推理 | pass@k | HMMT 竞赛题目 |
-| **gpqa_diamond** | 科学选择题 | pass@k | 研究生级别科学 QA |
-| **mmlu/mmlu_pro** | 选择题 | pass@k | 大规模多任务语言理解 |
-| **ceval** | 选择题 | pass@k | 中文能力评测 |
-| **ifeval** | 指令遵循 | prompt-level pass | 指令遵循评估 |
-| **ifbench** | 指令遵循 | prompt-level pass | 扩展 IF 评估 |
+
+| 任务                | 类型    | 评测指标              | 说明              |
+| ----------------- | ----- | ----------------- | --------------- |
+| **aime2024/2025** | 数学推理  | pass@k            | AIME 竞赛题目       |
+| **amc2023**       | 数学推理  | pass@k            | AMC 竞赛题目        |
+| **math500**       | 数学推理  | pass@k            | MATH 数据集 (500题) |
+| **minerva**       | 数学推理  | pass@k            | Minerva 数学题目    |
+| **hmmt2025**      | 数学推理  | pass@k            | HMMT 竞赛题目       |
+| **gpqa_diamond**  | 科学选择题 | pass@k            | 研究生级别科学 QA      |
+| **mmlu/mmlu_pro** | 选择题   | pass@k            | 大规模多任务语言理解      |
+| **ceval**         | 选择题   | pass@k            | 中文能力评测          |
+| **ifeval**        | 指令遵循  | prompt-level pass | 指令遵循评估          |
+| **ifbench**       | 指令遵循  | prompt-level pass | 扩展 IF 评估        |
+
 
 **添加自定义任务：**
 
 1. 在任务目录创建 JSONL 文件：
+
 ```jsonl
 {"question_id": "q1", "prompt": "2+2=？", "label": "4"}
 {"question_id": "q2", "prompt": "求解：x^2 = 4", "label": "2, -2"}
 ```
 
-2. 在 `nanoeval/utils/task.py` 注册：
+1. 在 `nanoeval/utils/task.py` 注册：
+
 ```python
 TASK_TO_JSONL = {
     "your_task": "your_task.jsonl",
@@ -533,10 +556,12 @@ TASK_TO_JSONL = {
 
 ### CSV 输出
 
-| task | avg_k | pass_k | avg_total_tokens | avg_thinking_tokens | max_thinking_tokens | min_thinking_tokens |
-|------|-------|--------|------------------|---------------------|---------------------|---------------------|
-| aime2024 | 0.25 | 0.5 | 150.5 | 45.2 | 120 | 10 |
-| overall | 0.30 | 0.6 | 145.0 | 42.0 | 120 | 10 |
+
+| task     | avg_k | pass_k | avg_total_tokens | avg_thinking_tokens | max_thinking_tokens | min_thinking_tokens |
+| -------- | ----- | ------ | ---------------- | ------------------- | ------------------- | ------------------- |
+| aime2024 | 0.25  | 0.5    | 150.5            | 45.2                | 120                 | 10                  |
+| overall  | 0.30  | 0.6    | 145.0            | 42.0                | 120                 | 10                  |
+
 
 ---
 
@@ -545,6 +570,7 @@ TASK_TO_JSONL = {
 ### 问题：显存不足 (OOM)
 
 **解决方案：**
+
 1. 降低 `--concurrency`
 2. 降低 `--max-tokens`
 3. 增大 `--tp-size` 启用张量并行
@@ -553,16 +579,18 @@ TASK_TO_JSONL = {
 ### 问题：推理速度过慢
 
 **排查清单：**
-- [ ] GPU 利用率是否 100%？（`nvidia-smi` 查看）
-- [ ] `--concurrency` 是否足够高？
-- [ ] 在线模式：API 延迟是否是瓶颈？
-- [ ] 尝试 `online_ray` 应对高延迟 API
+
+- GPU 利用率是否 100%？（`nvidia-smi` 查看）
+- `--concurrency` 是否足够高？
+- 在线模式：API 延迟是否是瓶颈？
+- 尝试 `online_ray` 应对高延迟 API
 
 ### 问题：断点续跑失效
 
 **原因：** 输出文件包含部分结果但 ID 不匹配。
 
 **解决方案：**
+
 ```bash
 # 删除损坏的输出重新运行
 rm ./work/step02.jsonl
@@ -574,6 +602,7 @@ python run.py --stage step02 ...
 **原因：** Tokenizer 不支持 `apply_chat_template`。
 
 **解决方案：**
+
 ```bash
 # 跳过对话模板应用
 # （不指定 --chat-template-model-path）
@@ -582,6 +611,7 @@ python run.py --stage step02 ...
 ### 问题：Ray 初始化错误
 
 **解决方案：**
+
 ```bash
 # 清除 Ray 临时文件
 rm -rf /tmp/ray
@@ -593,6 +623,7 @@ ray.init(include_dashboard=False)
 ### 问题：连接超时（在线模式）
 
 **解决方案：**
+
 ```bash
 # 增加超时时间
 --online-request-timeout-s 3600
@@ -672,8 +703,3 @@ python "${REPO_ROOT}/run.py" \
 echo "评测完成。结果保存在 ${WORKDIR}"
 ```
 
----
-
-## 许可证
-
-本项目部分代码参考并修改自 OpenICL、chain-of-thought-hub 和 instruct-eval。详见各文件中的版权声明。
